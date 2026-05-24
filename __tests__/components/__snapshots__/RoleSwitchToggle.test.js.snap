@@ -1,0 +1,261 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RoleSwitchToggle matches snapshot with admin mode active 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#f0f0f0",
+      "borderRadius": 20,
+      "flexDirection": "row",
+      "marginRight": 12,
+      "padding": 3,
+    }
+  }
+>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "borderRadius": 18,
+        "opacity": 1,
+        "paddingHorizontal": 14,
+        "paddingVertical": 5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#888",
+            "fontSize": 13,
+            "fontWeight": "600",
+          },
+          false,
+        ]
+      }
+    >
+      Mechanic
+    </Text>
+  </View>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "backgroundColor": "#E85D04",
+        "borderRadius": 18,
+        "elevation": 3,
+        "opacity": 1,
+        "paddingHorizontal": 14,
+        "paddingVertical": 5,
+        "shadowColor": "#E85D04",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.35,
+        "shadowRadius": 4,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#888",
+            "fontSize": 13,
+            "fontWeight": "600",
+          },
+          {
+            "color": "#fff",
+          },
+        ]
+      }
+    >
+      Admin
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`RoleSwitchToggle matches snapshot with mechanic mode active 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#f0f0f0",
+      "borderRadius": 20,
+      "flexDirection": "row",
+      "marginRight": 12,
+      "padding": 3,
+    }
+  }
+>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "backgroundColor": "#E85D04",
+        "borderRadius": 18,
+        "elevation": 3,
+        "opacity": 1,
+        "paddingHorizontal": 14,
+        "paddingVertical": 5,
+        "shadowColor": "#E85D04",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.35,
+        "shadowRadius": 4,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#888",
+            "fontSize": 13,
+            "fontWeight": "600",
+          },
+          {
+            "color": "#fff",
+          },
+        ]
+      }
+    >
+      Mechanic
+    </Text>
+  </View>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "borderRadius": 18,
+        "opacity": 1,
+        "paddingHorizontal": 14,
+        "paddingVertical": 5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#888",
+            "fontSize": 13,
+            "fontWeight": "600",
+          },
+          false,
+        ]
+      }
+    >
+      Admin
+    </Text>
+  </View>
+</View>
+`;
