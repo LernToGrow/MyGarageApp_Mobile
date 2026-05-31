@@ -1,7 +1,7 @@
 import { showAlert } from '../../utils/alert';
 import React, { useCallback, useState } from 'react';
 import {
-  View, SafeAreaView, Text, FlatList, TouchableOpacity, TextInput, ScrollView,
+  View, Text, FlatList, TouchableOpacity, TextInput, ScrollView,
   StyleSheet, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -251,7 +251,7 @@ export default function MyJobsScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Search */}
       <View style={styles.searchWrap}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -386,7 +386,7 @@ export default function MyJobsScreen({ navigation }) {
           <Text style={styles.fabText}>+ {t('jobs.newJob')}</Text>
         </TouchableOpacity>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
