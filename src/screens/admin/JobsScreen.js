@@ -2,7 +2,7 @@ import { showAlert } from '../../utils/alert'
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
-  StyleSheet, RefreshControl, ActivityIndicator, ScrollView,
+  StyleSheet, RefreshControl, ActivityIndicator, ScrollView, Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -64,6 +64,7 @@ function JobRow({ job, onPress, onLongPress }) {
   const color    = STATUS_COLOR[job.status] || '#999';
   const duration = durLabel(job.duration_minutes);
   const canDelete = job.status === 'received';
+  const assignedName = job.assigned_to?.name;
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.75}>
       <View style={styles.rowLeft}>
@@ -72,6 +73,9 @@ function JobRow({ job, onPress, onLongPress }) {
         <Text style={styles.bikeLine}>
           {job.bike_id?.make} {job.bike_id?.model}{'  ·  '}{job.bike_id?.plate_number}
         </Text>
+        {assignedName && (
+          <Text style={styles.assignedLine}>👤 {assignedName}</Text>
+        )}
         {duration && (
           <Text style={styles.durationLine}>⏱ {duration}</Text>
         )}
@@ -105,6 +109,8 @@ export default function JobsScreen({ navigation, route }) {
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState('from');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [assignedFilter, setAssignedFilter] = useState('all');
+  const [assignedDropdownOpen, setAssignedDropdownOpen] = useState(false);
 
   function openPicker(target) {
     setActivePreset(null);
@@ -192,16 +198,21 @@ export default function JobsScreen({ navigation, route }) {
   useEffect(() => { fetchJobs(); }, [filter, fromDate, toDate]);
   useFocusEffect(useCallback(() => { fetchJobs(); }, []));
 
-  const displayed = search.trim()
-    ? jobs.filter((j) => {
-        const q = search.toLowerCase();
-        return (
-          j.job_number?.toLowerCase().includes(q) ||
-          j.customer_id?.name?.toLowerCase().includes(q) ||
-          j.bike_id?.plate_number?.toLowerCase().includes(q)
-        );
-      })
-    : jobs;
+  const assignedEmployees = [...new Map(
+    jobs.filter(j => j.assigned_to?._id).map(j => [j.assigned_to._id, j.assigned_to])
+  ).values()];
+
+  const displayed = jobs
+    .filter((j) => {
+      if (assignedFilter !== 'all' && j.assigned_to?._id !== assignedFilter) return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        j.job_number?.toLowerCase().includes(q) ||
+        j.customer_id?.name?.toLowerCase().includes(q) ||
+        j.bike_id?.plate_number?.toLowerCase().includes(q)
+      );
+    });
 
   const chipLabel = (s) => {
     if (s === 'all') return t('jobs.all');
@@ -244,6 +255,13 @@ export default function JobsScreen({ navigation, route }) {
           {filter !== 'all' && (
             <View style={styles.filterBarBadge}>
               <Text style={styles.filterBarBadgeText}>{chipLabel(filter)}</Text>
+            </View>
+          )}
+          {assignedFilter !== 'all' && (
+            <View style={[styles.filterBarBadge, { backgroundColor: '#0077b6' }]}>
+              <Text style={styles.filterBarBadgeText}>
+                👤 {assignedEmployees.find(e => e._id === assignedFilter)?.name || ''}
+              </Text>
             </View>
           )}
         </View>
@@ -304,8 +322,52 @@ export default function JobsScreen({ navigation, route }) {
               />
             ))}
           </ScrollView>
+
+          {assignedEmployees.length > 0 && (
+            <>
+              <View style={styles.divider} />
+              <Text style={[styles.filterLabel, { marginTop: 12 }]}>Assigned To</Text>
+              <TouchableOpacity
+                style={styles.dropdownBtn}
+                onPress={() => setAssignedDropdownOpen(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dropdownBtnText}>
+                  {assignedFilter === 'all'
+                    ? 'All Employees'
+                    : assignedEmployees.find(e => e._id === assignedFilter)?.name || 'All Employees'}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
+
+      {/* Assigned-to dropdown modal */}
+      <Modal visible={assignedDropdownOpen} transparent animationType="fade" onRequestClose={() => setAssignedDropdownOpen(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAssignedDropdownOpen(false)}>
+          <View style={styles.dropdownModal}>
+            <Text style={styles.dropdownModalTitle}>Select Employee</Text>
+            {[{ _id: 'all', name: 'All Employees' }, ...assignedEmployees].map((emp) => {
+              const active = assignedFilter === emp._id;
+              return (
+                <TouchableOpacity
+                  key={emp._id}
+                  style={[styles.dropdownOption, active && styles.dropdownOptionActive]}
+                  onPress={() => { setAssignedFilter(emp._id); setAssignedDropdownOpen(false); }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]}>
+                    {emp.name}
+                  </Text>
+                  {active && <Text style={styles.dropdownCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <DatePickerModal
         visible={showPicker}
@@ -446,6 +508,7 @@ const styles = StyleSheet.create({
   jobNum:          { fontSize: 12, fontWeight: '700', color: '#888', letterSpacing: 0.5, marginBottom: 2 },
   customerName:    { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 2 },
   bikeLine:        { fontSize: 13, color: '#666' },
+  assignedLine:    { fontSize: 12, color: '#555', fontWeight: '600', marginTop: 3 },
   durationLine:    { fontSize: 12, color: '#E85D04', fontWeight: '600', marginTop: 3 },
   deleteHint:      { fontSize: 10, color: '#ccc', marginTop: 3 },
   badge:           { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 10 },
@@ -453,4 +516,59 @@ const styles = StyleSheet.create({
   emptyText:       { fontSize: 16, color: '#aaa', textAlign: 'center', marginTop: 40 },
   countRow:        { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   countText:       { fontSize: 12, color: '#aaa', fontWeight: '600' },
+  dropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f6f6f6',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginTop: 4,
+  },
+  dropdownBtnText: { fontSize: 14, fontWeight: '600', color: '#333', flex: 1 },
+  dropdownArrow:   { fontSize: 10, color: '#E85D04', fontWeight: '700', marginLeft: 8 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  dropdownModal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '100%',
+    paddingVertical: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  dropdownModalTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E85D04',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f6f6f6',
+  },
+  dropdownOptionActive:     { backgroundColor: '#fff7f3' },
+  dropdownOptionText:       { fontSize: 15, color: '#333', flex: 1 },
+  dropdownOptionTextActive: { color: '#E85D04', fontWeight: '700' },
+  dropdownCheck:            { fontSize: 16, color: '#E85D04', fontWeight: '700' },
 });

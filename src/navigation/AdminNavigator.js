@@ -26,6 +26,7 @@ const TAB_ICONS = {
   Dashboard: ['grid',      'grid-outline'],
   Jobs:      ['briefcase', 'briefcase-outline'],
   Revenue:   ['bar-chart', 'bar-chart-outline'],
+  Payments:  ['card',      'card-outline'],
   Settings:  ['settings',  'settings-outline'],
 };
 
@@ -51,6 +52,7 @@ function AdminTabs() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: t('dashboard.title'), tabBarIcon: tabIcon('Dashboard') }} />
       <Tab.Screen name="Jobs"      component={JobsScreen}      options={{ title: t('jobs.title'),      tabBarIcon: tabIcon('Jobs') }} />
       <Tab.Screen name="Revenue"   component={RevenueScreen}   options={{ title: t('revenue.title'),   tabBarIcon: tabIcon('Revenue') }} />
+      <Tab.Screen name="Payments"  component={PaymentsScreen}  options={{ title: t('payments.title'),  tabBarIcon: tabIcon('Payments') }} />
       <Tab.Screen name="Settings"  component={SettingsScreen}  options={{ title: t('settings.title'),  tabBarIcon: tabIcon('Settings') }} />
     </Tab.Navigator>
   );
@@ -71,8 +73,7 @@ export default function AdminNavigator() {
         options={({ route }) => ({ ...sharedHeader, title: route.params?.name ? `${route.params.name} — ${t('employees.performance')}` : t('employees.performance') })}
       />
       <Stack.Screen name="EditProfile"      component={EditProfileScreen}     options={{ ...sharedHeader, title: t('editProfile.title') }} />
-      <Stack.Screen name="Payments"         component={PaymentsScreen}        options={{ ...sharedHeader, title: t('payments.title') }} />
-      <Stack.Screen name="Inventory"        component={InventoryScreen}       options={{ ...sharedHeader, title: t('inventory.title') }} />
+<Stack.Screen name="Inventory"        component={InventoryScreen}       options={{ ...sharedHeader, title: t('inventory.title') }} />
       <Stack.Screen name="Services"         component={ServicesScreen}        options={{ ...sharedHeader, title: t('services.title') }} />
     </Stack.Navigator>
   );

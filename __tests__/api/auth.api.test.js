@@ -10,8 +10,10 @@ jest.mock('../../src/api/client', () => ({
 
 import client from '../../src/api/client';
 import {
-  sendOtp,
-  verifyOtp,
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
   getMe,
   updateLanguage,
   updateProfile,
@@ -24,20 +26,44 @@ beforeEach(() => {
 });
 
 describe('auth.api', () => {
-  describe('sendOtp', () => {
-    it('POSTs to /auth/send-otp with phone', () => {
-      sendOtp('+911234567890');
-      expect(client.post).toHaveBeenCalledWith('/auth/send-otp', { phone: '+911234567890' });
+  describe('register', () => {
+    it('POSTs to /auth/register with phone, password, name, garageName', () => {
+      register('+911234567890', 'pass123', 'Alice', 'Best Garage');
+      expect(client.post).toHaveBeenCalledWith('/auth/register', {
+        phone: '+911234567890',
+        password: 'pass123',
+        name: 'Alice',
+        garageName: 'Best Garage',
+      });
     });
   });
 
-  describe('verifyOtp', () => {
-    it('POSTs to /auth/verify-otp with idToken, name, garageName', () => {
-      verifyOtp('id_tok', 'Alice', 'Best Garage');
-      expect(client.post).toHaveBeenCalledWith('/auth/verify-otp', {
-        idToken: 'id_tok',
-        name: 'Alice',
-        garageName: 'Best Garage',
+  describe('login', () => {
+    it('POSTs to /auth/login with phone and password', () => {
+      login('+911234567890', 'secret');
+      expect(client.post).toHaveBeenCalledWith('/auth/login', {
+        phone: '+911234567890',
+        password: 'secret',
+      });
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('POSTs to /auth/forgot-password with phone', () => {
+      forgotPassword('+911234567890');
+      expect(client.post).toHaveBeenCalledWith('/auth/forgot-password', {
+        phone: '+911234567890',
+      });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('POSTs to /auth/reset-password with phone, reset_token, new_password', () => {
+      resetPassword('+911234567890', 'tok123', 'newpass');
+      expect(client.post).toHaveBeenCalledWith('/auth/reset-password', {
+        phone: '+911234567890',
+        reset_token: 'tok123',
+        new_password: 'newpass',
       });
     });
   });

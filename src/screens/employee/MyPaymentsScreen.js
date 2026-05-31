@@ -1,27 +1,17 @@
 import { showAlert } from '../../utils/alert';
 import React, { useCallback, useState } from 'react';
 import {
-  View, SafeAreaView, Text, FlatList, TouchableOpacity, TextInput, ScrollView,
+  View, Text, FlatList, TouchableOpacity, TextInput, ScrollView,
   StyleSheet, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { getJobs, deleteJob } from '../../api/job.api';
-import useJobStore from '../../store/jobStore';
-import useAuthStore from '../../store/authStore';
+import { getJobs } from '../../api/job.api';
 import DatePickerModal from '../../components/DatePickerModal';
 
-const STATUS_ORDER   = ['received', 'inspecting', 'estimated', 'in_progress', 'done'];
-const HISTORY_STATUS = ['paid', 'closed'];
-const STATUS_COLOR = {
-  received:    '#6c757d',
-  inspecting:  '#0077b6',
-  estimated:   '#9c6644',
-  in_progress: '#E85D04',
-  done:        '#2d6a4f',
-  paid:        '#2d6a4f',
-  closed:      '#999',
-};
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const STATUS_COLOR = { paid: '#2d6a4f', partial: '#E85D04', pending: '#c62828' };
+const MODE_COLOR   = { cash: '#2d6a4f', online: '#0077b6', upi: '#7b2d8b' };
 
 const PRESETS = [
   { key: 'today', tKey: 'presets.today' },
@@ -36,80 +26,82 @@ function fmtISO(date) {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
-function fmtDisplay(date, locale = 'en') {
-  const localeMap = { en: 'en-IN', mr: 'mr-IN', hi: 'hi-IN' };
-  return date.toLocaleDateString(localeMap[locale] || 'en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+function fmtDisplay(date) {
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfToday() { const d = new Date(); d.setHours(23, 59, 59, 999); return d; }
 
-function JobCard({ job, onPress, onLongPress }) {
-  const { t } = useTranslation();
-  const statusKey = `jobs.status.${job.status}`;
-  const color = STATUS_COLOR[job.status] || '#999';
-  const canDelete = job.status === 'received';
+function fmt(n)  { return `₹${(n ?? 0).toLocaleString('en-IN')}`; }
+function dateStr(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
+}
 
+function PaymentRow({ item }) {
+  const { t } = useTranslation();
+  const statusColor = STATUS_COLOR[item.payment_status] || '#888';
+  const modeColor   = MODE_COLOR[item.payment_mode]    || '#888';
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.75}>
+    <View style={styles.card}>
       <View style={styles.cardInner}>
         <View style={styles.cardTop}>
           <View style={styles.jobNumChip}>
-            <Text style={styles.jobNum}>{job.job_number}</Text>
+            <Text style={styles.jobNum}>{item.job_number}</Text>
           </View>
-          <View style={[styles.badge, { backgroundColor: color + '22', borderColor: color + '55' }]}>
-            <Text style={[styles.badgeText, { color }]}>{t(statusKey)}</Text>
+          <View style={[styles.badge, { backgroundColor: statusColor + '22', borderColor: statusColor + '55' }]}>
+            <Text style={[styles.badgeText, { color: statusColor }]}>{t(`jobs.status.${item.payment_status}`, item.payment_status)}</Text>
           </View>
         </View>
-        <Text style={styles.customerName}>{job.customer_id?.name}</Text>
+        <Text style={styles.customerName}>{item.customer_id?.name || '—'}</Text>
         <View style={styles.bikeRow}>
           <Text style={styles.bikeIcon}>🏍</Text>
-          <Text style={styles.bikeLine}>
-            {job.bike_id?.make} {job.bike_id?.model}
-          </Text>
-          <View style={styles.platePill}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.8 }}>{job.bike_id?.plate_number}</Text>
+          <Text style={styles.bikeLine}>{item.bike_id?.make} {item.bike_id?.model}</Text>
+          {item.bike_id?.plate_number ? (
+            <View style={styles.platePill}>
+              <Text style={styles.platePillText}>{item.bike_id.plate_number}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.amountRow}>
+          <View>
+            <Text style={styles.amountLabel}>{t('payments.collected')}</Text>
+            <Text style={[styles.amountValue, { color: '#2d6a4f' }]}>{fmt(item.amount_paid)}</Text>
+          </View>
+          {item.balance_due > 0 && (
+            <View>
+              <Text style={styles.amountLabel}>{t('payments.balanceDue')}</Text>
+              <Text style={[styles.amountValue, { color: '#c62828' }]}>{fmt(item.balance_due)}</Text>
+            </View>
+          )}
+          <View style={{ alignItems: 'flex-end' }}>
+            {item.payment_mode && (
+              <View style={[styles.modeTag, { backgroundColor: modeColor + '20' }]}>
+                <Text style={[styles.modeTagText, { color: modeColor }]}>{t(`payment.${item.payment_mode}`, item.payment_mode.toUpperCase())}</Text>
+              </View>
+            )}
+            <Text style={styles.dateText}>{dateStr(item.paid_at || item.updated_at)}</Text>
           </View>
         </View>
-        {(job.assigned_to?.name || job.estimated_ready_at) && (
-          <View style={styles.cardFooter}>
-            {job.assigned_to?.name && (
-              <View style={styles.assignedRow}>
-                <Text style={styles.assignedIcon}>👤</Text>
-                <Text style={styles.assignedLine}>{job.assigned_to.name}</Text>
-              </View>
-            )}
-            {job.estimated_ready_at && (
-              <View style={styles.etaRow}>
-                <Text style={styles.etaIcon}>🕐</Text>
-                <Text style={styles.eta}>
-                  {new Date(job.estimated_ready_at).toLocaleTimeString('en-IN', {
-                    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
-                  })}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-        {canDelete && (
-          <Text style={styles.deleteHint}>{t('jobs.holdToDelete') || 'Hold to delete'}</Text>
-        )}
+        {item.remitted_to_admin ? (
+          <Text style={styles.remittedText}>{t('payments.handedToAdmin')}</Text>
+        ) : item.amount_paid > 0 && item.payment_mode === 'cash' ? (
+          <Text style={styles.pendingText}>{t('payments.pendingToAdmin')}</Text>
+        ) : null}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
-export default function MyJobsScreen({ navigation }) {
-  const { t, i18n }  = useTranslation();
-  const { setActiveJob } = useJobStore();
-  const { user }         = useAuthStore();
-  const canBilling       = user?.role === 'garage_owner' || (user?.permissions ?? []).includes('add_billing');
-
+export default function MyPaymentsScreen() {
+  const { t } = useTranslation();
   const today = new Date();
-  const [tab, setTab]               = useState('active');
+
   const [jobs, setJobs]             = useState([]);
-  const [search, setSearch]         = useState('');
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch]         = useState('');
   const [fromDate, setFromDate]     = useState(startOfMonth(today));
   const [toDate, setToDate]         = useState(today);
   const [activePreset, setActivePreset] = useState('month');
@@ -157,20 +149,19 @@ export default function MyJobsScreen({ navigation }) {
     }
   }
 
-  async function fetchJobs(isRefresh = false, activeTab = tab, from = fromDate, to = toDate) {
+  async function load(isRefresh = false, from = fromDate, to = toDate) {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
-      const statuses = activeTab === 'active' ? STATUS_ORDER : HISTORY_STATUS;
-      const params = {
-        status: statuses.join(','),
+      const { data } = await getJobs({
+        collected_by: 'me',
         from: fmtISO(from),
         to:   fmtISO(to),
-      };
-      if (user?.role === 'garage_owner') {
-        params.assigned_to = user._id;
-      }
-      const { data } = await getJobs(params);
-      const sorted = (data.jobs || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      });
+      const sorted = (data.jobs || []).sort((a, b) => {
+        const dateA = a.paid_at || a.updated_at;
+        const dateB = b.paid_at || b.updated_at;
+        return new Date(dateB) - new Date(dateA);
+      });
       setJobs(sorted);
     } catch {
       showAlert('', t('common.error'));
@@ -180,56 +171,7 @@ export default function MyJobsScreen({ navigation }) {
     }
   }
 
-  useFocusEffect(useCallback(() => { fetchJobs(); }, [tab, fromDate, toDate]));
-
-  function switchTab(newTab) {
-    setTab(newTab);
-    setJobs([]);
-    fetchJobs(false, newTab);
-  }
-
-  function handleDeleteJob(job) {
-    if (job.status !== 'received') return;
-    showAlert(
-      t('jobs.deleteJob') || 'Delete Job',
-      t('jobs.deleteJobConfirm', { number: job.job_number }) || `Delete ${job.job_number}?`,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete') || 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteJob(job._id);
-              setJobs((prev) => prev.filter((j) => j._id !== job._id));
-            } catch (err) {
-              showAlert(t('common.error'), err.response?.data?.error || t('common.error'));
-            }
-          },
-        },
-      ]
-    );
-  }
-
-  function openJob(job) {
-    setActiveJob(job);
-    if (tab === 'history') {
-      navigation.navigate('JobDetail', { jobId: job._id });
-      return;
-    }
-    const dest = {
-      received:    'Inspection',
-      inspecting:  'Inspection',
-      estimated:   'Estimate',
-      in_progress: 'JobCard',
-      done:        canBilling ? 'Payment' : 'JobDetail',
-    }[job.status] || 'JobDetail';
-    if (job.status === 'done' && !canBilling) {
-      showAlert('', 'You need billing permission to collect payment. Ask your admin.');
-    }
-    const params = dest === 'JobDetail' ? { jobId: job._id } : undefined;
-    navigation.navigate(dest, params);
-  }
+  useFocusEffect(useCallback(() => { load(); }, [fromDate, toDate]));
 
   const displayed = search.trim()
     ? jobs.filter((j) => {
@@ -242,6 +184,11 @@ export default function MyJobsScreen({ navigation }) {
       })
     : jobs;
 
+  const totalCollected = displayed.reduce((sum, j) => sum + (j.amount_paid || 0), 0);
+  const pendingRemit   = displayed
+    .filter(j => !j.remitted_to_admin && j.amount_paid > 0 && j.payment_mode === 'cash')
+    .reduce((sum, j) => sum + (j.amount_paid || 0), 0);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -251,7 +198,7 @@ export default function MyJobsScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Search */}
       <View style={styles.searchWrap}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -274,7 +221,7 @@ export default function MyJobsScreen({ navigation }) {
         <View style={styles.filterBarLeft}>
           <Text style={styles.filterBarIcon}>📅</Text>
           <Text style={styles.filterBarDate}>
-            {fmtDisplay(fromDate, i18n.language)}  →  {fmtDisplay(toDate, i18n.language)}
+            {fmtDisplay(fromDate)}  →  {fmtDisplay(toDate)}
           </Text>
         </View>
         <View style={[styles.filterBarChevronWrap, filtersOpen && styles.filterBarChevronWrapOpen]}>
@@ -284,7 +231,7 @@ export default function MyJobsScreen({ navigation }) {
 
       {filtersOpen && (
         <View style={styles.filterCard}>
-          <Text style={styles.filterLabel}>{t('jobs.dateFilter')}</Text>
+          <Text style={styles.filterLabel}>{t('payments.dateRange')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
             {PRESETS.map(({ key, tKey }) => {
               const isActive = activePreset === key;
@@ -292,7 +239,7 @@ export default function MyJobsScreen({ navigation }) {
                 <TouchableOpacity
                   key={key}
                   style={[styles.presetChip, isActive && styles.presetChipActive]}
-                  onPress={() => { setPreset(key); fetchJobs(false, tab); }}
+                  onPress={() => { setPreset(key); load(false, fromDate, toDate); }}
                   activeOpacity={0.75}
                 >
                   <Text style={[styles.presetChipText, isActive && styles.presetChipTextActive]}>{t(tKey)}</Text>
@@ -300,7 +247,6 @@ export default function MyJobsScreen({ navigation }) {
               );
             })}
           </ScrollView>
-
           <View style={styles.rangeRow}>
             <TouchableOpacity
               style={[styles.dateBtn, pickerTarget === 'from' && showPicker && styles.dateBtnActive]}
@@ -308,7 +254,7 @@ export default function MyJobsScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Text style={styles.dateBtnLabel}>{t('common.from')}</Text>
-              <Text style={styles.dateBtnValue}>{fmtDisplay(fromDate, i18n.language)}</Text>
+              <Text style={styles.dateBtnValue}>{fmtDisplay(fromDate)}</Text>
             </TouchableOpacity>
             <View style={styles.rangeSeparator}>
               <Text style={styles.rangeSeparatorText}>→</Text>
@@ -319,7 +265,7 @@ export default function MyJobsScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Text style={styles.dateBtnLabel}>{t('common.to')}</Text>
-              <Text style={styles.dateBtnValue}>{fmtDisplay(toDate, i18n.language)}</Text>
+              <Text style={styles.dateBtnValue}>{fmtDisplay(toDate)}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -334,59 +280,42 @@ export default function MyJobsScreen({ navigation }) {
         onCancel={() => setShowPicker(false)}
       />
 
-      {/* Tab toggle */}
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'active' && styles.tabBtnActive]}
-          onPress={() => switchTab('active')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.tabBtnText, tab === 'active' && styles.tabBtnTextActive]}>{t('jobs.active')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'history' && styles.tabBtnActive]}
-          onPress={() => switchTab('history')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.tabBtnText, tab === 'history' && styles.tabBtnTextActive]}>{t('jobs.history')}</Text>
-        </TouchableOpacity>
-      </View>
-
+      {/* Count pill */}
       <View style={styles.countRow}>
         <View style={styles.countPill}>
-          <Text style={styles.countText}>{displayed.length} {t('jobs.title').toLowerCase()}</Text>
+          <Text style={styles.countText}>{t('payments.countShown', { count: displayed.length })}</Text>
         </View>
       </View>
 
       <FlatList
         data={displayed}
         keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <JobCard job={item} onPress={() => openJob(item)} onLongPress={() => handleDeleteJob(item)} />
-        )}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchJobs(true)} colors={['#E85D04']} />
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} colors={['#E85D04']} />}
+        ListHeaderComponent={
+          displayed.length > 0 ? (
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>{t('payments.totalCollected')}</Text>
+                <Text style={[styles.summaryValue, { color: '#2d6a4f' }]}>{fmt(totalCollected)}</Text>
+              </View>
+              {pendingRemit > 0 && (
+                <View style={[styles.summaryCard, { borderLeftColor: '#E85D04' }]}>
+                  <Text style={styles.summaryLabel}>{t('payments.pendingHandover')}</Text>
+                  <Text style={[styles.summaryValue, { color: '#E85D04' }]}>{fmt(pendingRemit)}</Text>
+                </View>
+              )}
+            </View>
+          ) : null
         }
+        renderItem={({ item }) => <PaymentRow item={item} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              {tab === 'active' ? t('jobs.noActiveJobs') : t('jobs.noCompletedJobs')}
-            </Text>
+            <Text style={styles.emptyText}>{t('payments.noPayments')}</Text>
           </View>
         }
-        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
       />
-
-      {tab === 'active' && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => { setActiveJob(null); navigation.navigate('AddBike'); }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.fabText}>+ {t('jobs.newJob')}</Text>
-        </TouchableOpacity>
-      )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -432,12 +361,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.07,
     shadowRadius: 4,
   },
-  filterBarLeft:         { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  filterBarIcon:         { fontSize: 15, marginRight: 8 },
-  filterBarDate:         { fontSize: 13, fontWeight: '600', color: '#333' },
-  filterBarChevronWrap:  { backgroundColor: '#f2f3f7', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  filterBarLeft:            { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  filterBarIcon:            { fontSize: 15, marginRight: 8 },
+  filterBarDate:            { fontSize: 13, fontWeight: '600', color: '#333' },
+  filterBarChevronWrap:     { backgroundColor: '#f2f3f7', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   filterBarChevronWrapOpen: { backgroundColor: '#fff0e9' },
-  filterBarChevron:      { fontSize: 10, color: '#E85D04', fontWeight: '700' },
+  filterBarChevron:         { fontSize: 10, color: '#E85D04', fontWeight: '700' },
 
   // Filter card
   filterCard: {
@@ -473,27 +402,30 @@ const styles = StyleSheet.create({
   rangeSeparator:     { paddingHorizontal: 10 },
   rangeSeparatorText: { fontSize: 20, color: '#E85D04' },
 
-  // Tabs
-  tabRow: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 6,
-    marginBottom: 6,
-    backgroundColor: '#e4e5ea',
-    borderRadius: 12,
-    padding: 3,
-  },
-  tabBtn:           { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
-  tabBtnActive:     { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
-  tabBtnText:       { fontSize: 14, fontWeight: '600', color: '#999' },
-  tabBtnTextActive: { color: '#E85D04', fontWeight: '800' },
-
   // Count pill
-  countRow:  { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 6 },
+  countRow:  { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 8 },
   countPill: { alignSelf: 'flex-start', backgroundColor: '#e4e5ea', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   countText: { fontSize: 12, color: '#777', fontWeight: '700' },
 
-  // Job card
+  // Summary cards
+  summaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2d6a4f',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+  },
+  summaryLabel: { fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  summaryValue: { fontSize: 20, fontWeight: '800' },
+
+  // Payment card
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -518,41 +450,22 @@ const styles = StyleSheet.create({
   },
   badgeText:    { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
   customerName: { fontSize: 17, fontWeight: '800', color: '#111', marginBottom: 6 },
-  bikeRow:      { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+  bikeRow:      { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   bikeIcon:     { fontSize: 14 },
   bikeLine:     { fontSize: 13, color: '#666', fontWeight: '500' },
-  platePill: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  // platePillText lives inside platePill — we write it as Text directly with inline style
-  cardFooter:   { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  assignedRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  assignedIcon: { fontSize: 13 },
-  assignedLine: { fontSize: 13, color: '#555', fontWeight: '600' },
-  etaRow:       { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  etaIcon:      { fontSize: 13 },
-  eta:          { fontSize: 13, color: '#E85D04', fontWeight: '700' },
-  deleteHint:   { fontSize: 10, color: '#ddd', marginTop: 6 },
+  platePill:    { backgroundColor: '#1a1a2e', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  platePillText:{ fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.8 },
+
+  amountRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  amountLabel: { fontSize: 11, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  amountValue: { fontSize: 17, fontWeight: '800' },
+  modeTag:     { borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2, marginBottom: 3 },
+  modeTagText: { fontSize: 11, fontWeight: '700' },
+  dateText:    { fontSize: 12, color: '#aaa' },
+
+  remittedText: { fontSize: 12, color: '#2d6a4f', fontWeight: '600', marginTop: 8 },
+  pendingText:  { fontSize: 12, color: '#E85D04', fontWeight: '600', marginTop: 8 },
 
   empty:    { alignItems: 'center', paddingTop: 80 },
   emptyText:{ fontSize: 16, color: '#bbb', fontWeight: '500' },
-
-  fab: {
-    position: 'absolute',
-    bottom: 80,
-    right: 20,
-    backgroundColor: '#E85D04',
-    borderRadius: 30,
-    paddingVertical: 15,
-    paddingHorizontal: 24,
-    elevation: 6,
-    shadowColor: '#E85D04',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-  },
-  fabText: { color: '#fff', fontWeight: '800', fontSize: 15, letterSpacing: 0.3 },
 });

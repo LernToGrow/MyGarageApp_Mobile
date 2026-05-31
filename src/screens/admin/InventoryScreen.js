@@ -119,7 +119,7 @@ export default function InventoryScreen({ route }) {
         await updatePart(editingPart._id, payload);
         if (restockQty && parseInt(restockQty) !== 0) {
           await adjustStock(editingPart._id, {
-            quantity_change: parseInt(restockQty),
+            adjustment: parseInt(restockQty),
             reason: 'restock',
           });
         }
@@ -195,19 +195,27 @@ export default function InventoryScreen({ route }) {
             <Field label={t('inventory.sku')}             value={form.sku}          onChangeText={set('sku')} />
             <Field label={t('inventory.sellPrice')}       value={form.sell_price}   onChangeText={set('sell_price')}   keyboardType="numeric" />
             <Field label={t('inventory.buyPrice')}        value={form.buy_price}    onChangeText={set('buy_price')}    keyboardType="numeric" />
-            <Field label={t('inventory.quantity')}        value={form.quantity}     onChangeText={set('quantity')}     keyboardType="numeric" />
+            {!editingPart && (
+              <Field label={t('inventory.quantity')} value={form.quantity} onChangeText={set('quantity')} keyboardType="numeric" />
+            )}
             <Field label={t('inventory.minQty')}          value={form.min_quantity} onChangeText={set('min_quantity')} keyboardType="numeric" />
             <Field label={t('inventory.vendorName')}      value={form.vendor_name}  onChangeText={set('vendor_name')} />
             <Field label={t('inventory.vendorPhone')}     value={form.vendor_phone} onChangeText={set('vendor_phone')} keyboardType="phone-pad" />
 
             {editingPart && (
-              <Field
-                label={t('inventory.restockLabel')}
-                value={restockQty}
-                onChangeText={setRestockQty}
-                keyboardType="numbers-and-punctuation"
-                placeholder="e.g. 10 or -2"
-              />
+              <>
+                <View style={styles.stockInfoRow}>
+                  <Text style={styles.stockInfoLabel}>{t('inventory.quantity')}</Text>
+                  <Text style={styles.stockInfoValue}>{editingPart.quantity}</Text>
+                </View>
+                <Field
+                  label={t('inventory.restockLabel')}
+                  value={restockQty}
+                  onChangeText={setRestockQty}
+                  keyboardType="numbers-and-punctuation"
+                  placeholder="e.g. 10 or -2"
+                />
+              </>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
@@ -270,6 +278,9 @@ const styles = StyleSheet.create({
   modalCancel:      { fontSize: 16, color: '#888' },
   modalTitle:       { fontSize: 17, fontWeight: '700', color: '#111' },
   modalSave:        { fontSize: 16, color: '#E85D04', fontWeight: '700' },
+  stockInfoRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f6f6f6', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 16 },
+  stockInfoLabel:   { fontSize: 13, fontWeight: '600', color: '#555' },
+  stockInfoValue:   { fontSize: 15, fontWeight: '700', color: '#111' },
   field:            { marginBottom: 16 },
   fieldLabel:       { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6 },
   fieldInput: {

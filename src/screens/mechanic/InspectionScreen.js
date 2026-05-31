@@ -18,7 +18,9 @@ export default function InspectionScreen({ navigation }) {
 
   const [catalog, setCatalog]   = useState([]);
   const [search, setSearch]     = useState('');
-  const [selected, setSelected] = useState([]); // [{ name, labour_charge }]
+  const [selected, setSelected] = useState(
+    (activeJob?.services || []).map((s) => ({ name: s.name, labour_charge: s.labour_charge || 0 }))
+  );
 
   useEffect(() => {
     getServices().then(({ data }) => setCatalog(data.services || [])).catch(() => {});
@@ -42,13 +44,15 @@ export default function InspectionScreen({ navigation }) {
 
   async function handleDone() {
     if (!notes.trim()) {
-      showAlert('', t('inspection.notesRequired') || 'Inspection notes are required');
+      showAlert('', t('inspection.notesRequired'));
       return;
     }
     setSaving(true);
     try {
-      if (selected.length > 0) {
-        await addService(activeJob._id, { services: selected });
+      const existingNames = new Set((activeJob?.services || []).map((s) => s.name));
+      const newServices = selected.filter((s) => !existingNames.has(s.name));
+      if (newServices.length > 0) {
+        await addService(activeJob._id, { services: newServices });
       }
       const { data } = await updateInspection(activeJob._id, {
         inspection_notes: notes.trim(),
@@ -67,13 +71,13 @@ export default function InspectionScreen({ navigation }) {
       <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
 
         {/* Service search */}
-        <Text style={styles.label}>{t('inspection.services') || 'Services Needed'}</Text>
+        <Text style={styles.label}>{t('inspection.services')}</Text>
         <View style={styles.searchWrap}>
           <TextInput
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
-            placeholder={t('inspection.searchService') || 'Search service…'}
+            placeholder={t('inspection.searchService')}
             placeholderTextColor="#bbb"
           />
         </View>

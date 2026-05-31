@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import DatePickerModal from '../../components/DatePickerModal';
 import { getPayments } from '../../api/dashboard.api';
+import { remitPayment } from '../../api/job.api';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -55,7 +56,7 @@ function FilterPill({ label, active, onPress }) {
   );
 }
 
-function DetailModal({ item, onClose }) {
+function DetailModal({ item, onClose, onRemit, remitting }) {
   const { t } = useTranslation();
   if (!item) return null;
   const statusColor = STATUS_COLOR[item.payment_status] || '#888';
@@ -108,7 +109,24 @@ function DetailModal({ item, onClose }) {
           {item.bike_id && (
             <DetailRow label={t('payments.vehicle')} value={`${item.bike_id.make || ''} ${item.bike_id.model || ''} · ${item.bike_id.plate_number || ''}`.trim()} />
           )}
+          <DetailRow label={t('payments.collectedBy')} value={item.collected_by?.name || '—'} />
+          <DetailRow
+            label={t('payments.adminReceived')}
+            value={item.remitted_to_admin ? t('payments.submittedOn', { date: dateStr(item.remitted_at) }) : t('payments.cashNotSubmitted')}
+            color={item.remitted_to_admin ? '#2d6a4f' : '#E85D04'}
+          />
         </ScrollView>
+
+        {!item.remitted_to_admin && item.amount_paid > 0 && (
+          <TouchableOpacity
+            style={[styles.remitBtn, remitting && { opacity: 0.6 }]}
+            onPress={() => onRemit(item._id)}
+            disabled={remitting}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.remitBtnText}>{remitting ? t('common.loading') : t('payments.markCashReceived')}</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.8}>
           <Text style={styles.closeBtnText}>{t('common.close')}</Text>
@@ -128,6 +146,7 @@ function DetailRow({ label, value, color }) {
 }
 
 function PaymentRow({ item, onPress }) {
+  const { t } = useTranslation();
   const statusColor = STATUS_COLOR[item.payment_status] || '#888';
   const modeColor   = MODE_COLOR[item.payment_mode]    || '#888';
   return (
@@ -136,6 +155,9 @@ function PaymentRow({ item, onPress }) {
         <Text style={styles.jobNum}>{item.job_number}</Text>
         <Text style={styles.customerName}>{item.customer_id?.name || '—'}</Text>
         <Text style={styles.dateLine}>{dateStr(item.paid_at)}</Text>
+        {item.collected_by?.name && (
+          <Text style={styles.collectedLine}>👤 {item.collected_by.name}</Text>
+        )}
       </View>
       <View style={styles.rowRight}>
         <Text style={styles.amountText}>{fmt(item.amount_paid)}</Text>
@@ -151,6 +173,17 @@ function PaymentRow({ item, onPress }) {
           <View style={[styles.tag, { backgroundColor: statusColor + '20' }]}>
             <Text style={[styles.tagText, { color: statusColor }]}>{item.payment_status}</Text>
           </View>
+          {item.amount_paid > 0 && (
+            item.remitted_to_admin
+              ? <View style={[styles.tag, { backgroundColor: '#e8f5e9' }]}>
+                  <Text style={[styles.tagText, { color: '#2d6a4f' }]}>{t('payments.submitted')}</Text>
+                </View>
+              : item.payment_mode === 'cash'
+                ? <View style={[styles.tag, { backgroundColor: '#FFF4EE' }]}>
+                    <Text style={[styles.tagText, { color: '#E85D04' }]}>{t('payments.notSubmitted')}</Text>
+                  </View>
+                : null
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -168,8 +201,10 @@ export default function PaymentsScreen({ route }) {
   const [showPicker, setShowPicker]     = useState(false);
   const [pickerTarget, setPickerTarget] = useState('from');
 
-  const [modeFilter, setModeFilter]     = useState('all');
-  const [statusFilter, setStatusFilter] = useState(route?.params?.filterStatus || 'all');
+  const [modeFilter, setModeFilter]           = useState('all');
+  const [statusFilter, setStatusFilter]       = useState(route?.params?.filterStatus || 'all');
+  const [collectedByFilter, setCollectedByFilter] = useState('all');
+  const [collectedByDropdownOpen, setCollectedByDropdownOpen] = useState(false);
   const [search, setSearch]             = useState('');
   const [filtersOpen, setFiltersOpen]   = useState(false);
 
@@ -182,6 +217,7 @@ export default function PaymentsScreen({ route }) {
   const [loadingMore, setLoadingMore]   = useState(false);
 
   const [selected, setSelected]         = useState(null);
+  const [remitting, setRemitting]       = useState(false);
 
   function openPicker(target) {
     setActivePreset(null);
@@ -262,9 +298,14 @@ export default function PaymentsScreen({ route }) {
     }
   }
 
+  const collectedByEmployees = [...new Map(
+    payments.filter(p => p.collected_by?._id).map(p => [p.collected_by._id, p.collected_by])
+  ).values()];
+
   const displayed = payments.filter((p) => {
-    if (modeFilter   !== 'all' && p.payment_mode   !== modeFilter)   return false;
-    if (statusFilter !== 'all' && p.payment_status !== statusFilter) return false;
+    if (modeFilter        !== 'all' && p.payment_mode   !== modeFilter)          return false;
+    if (statusFilter      !== 'all' && p.payment_status !== statusFilter)        return false;
+    if (collectedByFilter !== 'all' && p.collected_by?._id !== collectedByFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       const hit =
@@ -275,6 +316,22 @@ export default function PaymentsScreen({ route }) {
     }
     return true;
   });
+
+  async function handleRemit(jobId) {
+    setRemitting(true);
+    try {
+      const res = await remitPayment(jobId);
+      const updated = res.data.job;
+      setPayments(prev => prev.map(p =>
+        p._id === jobId ? { ...p, remitted_to_admin: true, remitted_at: updated.remitted_at } : p
+      ));
+      setSelected(s => s?._id === jobId ? { ...s, remitted_to_admin: true, remitted_at: updated.remitted_at } : s);
+    } catch {
+      showAlert(t('common.error'), t('payments.markReceivedError'));
+    } finally {
+      setRemitting(false);
+    }
+  }
 
   const pillLabel = (val, domain) => {
     if (val === 'all') return t('common.all');
@@ -312,6 +369,13 @@ export default function PaymentsScreen({ route }) {
           {modeFilter !== 'all' && (
             <View style={[styles.filterBarBadge, { backgroundColor: '#0077b6' }]}>
               <Text style={styles.filterBarBadgeText}>{pillLabel(modeFilter, 'mode')}</Text>
+            </View>
+          )}
+          {collectedByFilter !== 'all' && (
+            <View style={[styles.filterBarBadge, { backgroundColor: '#2d6a4f' }]}>
+              <Text style={styles.filterBarBadgeText}>
+                👤 {collectedByEmployees.find(e => e._id === collectedByFilter)?.name || ''}
+              </Text>
             </View>
           )}
         </View>
@@ -376,8 +440,50 @@ export default function PaymentsScreen({ route }) {
               ))}
             </ScrollView>
           </View>
+
+          {collectedByEmployees.length > 0 && (
+            <>
+              <View style={[styles.panelDivider, { marginTop: 12 }]} />
+              <Text style={[styles.dateFilterLabel, { marginBottom: 6 }]}>Collected By</Text>
+              <TouchableOpacity
+                style={styles.dropdownBtn}
+                onPress={() => setCollectedByDropdownOpen(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dropdownBtnText}>
+                  {collectedByFilter === 'all'
+                    ? 'All Employees'
+                    : collectedByEmployees.find(e => e._id === collectedByFilter)?.name || 'All Employees'}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
+
+      {/* Collected-by dropdown modal */}
+      <Modal visible={collectedByDropdownOpen} transparent animationType="fade" onRequestClose={() => setCollectedByDropdownOpen(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCollectedByDropdownOpen(false)}>
+          <View style={styles.dropdownModal}>
+            <Text style={styles.dropdownModalTitle}>Select Employee</Text>
+            {[{ _id: 'all', name: 'All Employees' }, ...collectedByEmployees].map((emp) => {
+              const active = collectedByFilter === emp._id;
+              return (
+                <TouchableOpacity
+                  key={emp._id}
+                  style={[styles.dropdownOption, active && styles.dropdownOptionActive]}
+                  onPress={() => { setCollectedByFilter(emp._id); setCollectedByDropdownOpen(false); }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]}>{emp.name}</Text>
+                  {active && <Text style={styles.dropdownCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <DatePickerModal
         visible={showPicker}
@@ -414,7 +520,7 @@ export default function PaymentsScreen({ route }) {
         />
       )}
 
-      <DetailModal item={selected} onClose={() => setSelected(null)} />
+      <DetailModal item={selected} onClose={() => setSelected(null)} onRemit={handleRemit} remitting={remitting} />
     </View>
   );
 }
@@ -525,7 +631,62 @@ const styles = StyleSheet.create({
   tag:          { borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2 },
   tagText:      { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
 
+  collectedLine:  { fontSize: 12, color: '#555', fontWeight: '600', marginTop: 2 },
   emptyText:    { fontSize: 16, color: '#aaa', textAlign: 'center', marginTop: 60 },
+  dropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f6f6f6',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  dropdownBtnText:          { fontSize: 14, fontWeight: '600', color: '#333', flex: 1 },
+  dropdownArrow:            { fontSize: 10, color: '#E85D04', fontWeight: '700', marginLeft: 8 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  dropdownModal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '100%',
+    paddingVertical: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  dropdownModalTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E85D04',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f6f6f6',
+  },
+  dropdownOptionActive:     { backgroundColor: '#fff7f3' },
+  dropdownOptionText:       { fontSize: 15, color: '#333', flex: 1 },
+  dropdownOptionTextActive: { color: '#E85D04', fontWeight: '700' },
+  dropdownCheck:            { fontSize: 16, color: '#E85D04', fontWeight: '700' },
 
   overlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
@@ -558,6 +719,8 @@ const styles = StyleSheet.create({
   detailLabel:  { fontSize: 14, color: '#888' },
   detailValue:  { fontSize: 14, fontWeight: '600', color: '#111', textTransform: 'capitalize', maxWidth: '55%', textAlign: 'right' },
 
-  closeBtn:     { margin: 16, backgroundColor: '#E85D04', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  remitBtn:     { marginHorizontal: 16, marginBottom: 8, backgroundColor: '#FFF4EE', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1.5, borderColor: '#fcd9b8' },
+  remitBtnText: { color: '#E85D04', fontWeight: '700', fontSize: 15 },
+  closeBtn:     { margin: 16, marginTop: 0, backgroundColor: '#E85D04', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   closeBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

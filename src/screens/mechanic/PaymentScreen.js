@@ -18,7 +18,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.100:5000/a
 export default function PaymentScreen({ navigation }) {
   const { t }                         = useTranslation();
   const { activeJob, updateActiveJob } = useJobStore();
-  const { token }                      = useAuthStore();
+  const { token, user }                = useAuthStore();
 
   const job      = activeJob;
   const isPaid   = job?.payment_status === 'paid';
@@ -164,6 +164,19 @@ export default function PaymentScreen({ navigation }) {
             {invoice && <Text style={styles.invoiceNum}>{t('payment.invoiceNumber', { number: invoice.invoice_number })}</Text>}
           </View>
 
+          <View style={styles.handoverCard}>
+            <View style={styles.handoverRow}>
+              <Text style={styles.handoverLabel}>{t('payment.collectedBy')}</Text>
+              <Text style={styles.handoverValue}>{user?.name ?? '—'}</Text>
+            </View>
+            {(mode === 'cash' || job?.payment_mode === 'cash') && (
+              <View style={[styles.handoverRow, { marginTop: 4 }]}>
+                <Text style={styles.handoverLabel}>{t('payment.cashHandover')}</Text>
+                <Text style={[styles.handoverValue, { color: '#E85D04' }]}>{t('payment.pendingAdminConfirm')}</Text>
+              </View>
+            )}
+          </View>
+
           <TouchableOpacity
             style={[styles.shareBtn, sharing && { opacity: 0.6 }]}
             onPress={handleShareInvoice}
@@ -271,4 +284,8 @@ const styles = StyleSheet.create({
   whatsappBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   doneBtn:       { borderWidth: 1.5, borderColor: '#ddd', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#fff' },
   doneBtnText:   { fontSize: 16, color: '#555', fontWeight: '600' },
+  handoverCard:  { backgroundColor: '#fff', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#f0f0f0' },
+  handoverRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  handoverLabel: { fontSize: 13, color: '#999' },
+  handoverValue: { fontSize: 13, fontWeight: '700', color: '#111' },
 });

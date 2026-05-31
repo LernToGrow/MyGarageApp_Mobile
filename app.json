@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile-init",
+    "name": "Garage App",
     "slug": "mobile-init",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,13 +21,19 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.sumit1252.garageapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e34b9a77-a245-4636-a04e-f4e78938a4f7"
+      }
+    }
   }
 }

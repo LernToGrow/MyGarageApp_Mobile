@@ -215,14 +215,29 @@ export default function RevenueScreen({ navigation, route }) {
             <StatRow label={t('revenue.avgDuration')} value={dur(data?.avg_job_duration_minutes)} />
           </View>
 
-          <TouchableOpacity
-            style={styles.paymentsBtn}
-            onPress={() => navigation.navigate('Payments')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.paymentsBtnText}>{t('revenue.viewPayments')}</Text>
-            <Text style={styles.paymentsBtnArrow}>›</Text>
-          </TouchableOpacity>
+          {data?.collector_breakdown?.length > 0 && (
+            <View style={styles.collectorCard}>
+              <Text style={styles.collectorTitle}>{t('revenue.collectionByEmployee')}</Text>
+              {data.collector_breakdown.map((c, i) => (
+                <View
+                  key={c._id ?? 'unknown'}
+                  style={[styles.collectorRow, i < data.collector_breakdown.length - 1 && styles.collectorRowBorder]}
+                >
+                  <View style={styles.collectorLeft}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{c.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <Text style={styles.collectorName}>{c.name}</Text>
+                  </View>
+                  <View style={styles.collectorRight}>
+                    <Text style={styles.collectorAmount}>{fmt(c.collected)}</Text>
+                    <Text style={styles.collectorCount}>{c.count} job{c.count !== 1 ? 's' : ''}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
         </>
       )}
     </ScrollView>
@@ -314,6 +329,28 @@ const styles = StyleSheet.create({
   statLabel:           { fontSize: 15, color: '#555' },
   statValue:           { fontSize: 15, fontWeight: '700', color: '#111' },
   statValueHighlight:  { color: '#c62828' },
+
+  collectorCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+  },
+  collectorTitle:      { fontSize: 11, fontWeight: '700', color: '#E85D04', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
+  collectorRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  collectorRowBorder:  { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  collectorLeft:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatar:              { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E85D04', justifyContent: 'center', alignItems: 'center' },
+  avatarText:          { color: '#fff', fontWeight: '800', fontSize: 14 },
+  collectorName:       { fontSize: 15, fontWeight: '600', color: '#111' },
+  collectorRight:      { alignItems: 'flex-end' },
+  collectorAmount:     { fontSize: 16, fontWeight: '800', color: '#111' },
+  collectorCount:      { fontSize: 12, color: '#999', marginTop: 1 },
 
   paymentsBtn: {
     flexDirection: 'row',

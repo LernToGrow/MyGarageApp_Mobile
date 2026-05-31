@@ -7,6 +7,7 @@ import AppAlert from '../components/AppAlert';
 import useAuthStore from '../store/authStore';
 import AdminNavigator    from './AdminNavigator';
 import MechanicNavigator from './MechanicNavigator';
+import EmployeeNavigator from './EmployeeNavigator';
 
 const LoginScreen          = require('../screens/auth/LoginScreen').default;
 const RegisterScreen       = require('../screens/auth/RegisterScreen').default;
@@ -25,7 +26,7 @@ function AuthStack() {
 }
 
 export default function AppNavigator() {
-  const { token, currentMode, hydrated, hydrate } = useAuthStore();
+  const { token, currentMode, hydrated, hydrate, user } = useAuthStore();
 
   useEffect(() => {
     hydrate();
@@ -44,6 +45,8 @@ export default function AppNavigator() {
       <NavigationContainer>
         {!token ? (
           <AuthStack />
+        ) : user?.role === 'employee' ? (
+          <EmployeeNavigator />
         ) : currentMode === 'admin' ? (
           <AdminNavigator />
         ) : (

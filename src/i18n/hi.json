@@ -107,6 +107,8 @@
     "deleteJob": "काम हटाएं",
     "deleteJobConfirm": "{{number}} हटाएं? सभी डेटा स्थायी रूप से हटा दिया जाएगा।",
     "active": "सक्रिय",
+    "history": "इतिहास",
+    "noCompletedJobs": "अभी तक कोई पूरा काम नहीं",
     "dateFilter": "तारीख फ़िल्टर",
     "statusFilter": "काम की स्थिति",
     "noActiveJobs": "आज कोई सक्रिय काम नहीं",
@@ -118,7 +120,9 @@
       "in_progress": "काम जारी",
       "done": "पूर्ण",
       "delivered": "डिलीवर",
-      "paid": "भुगतान"
+      "paid": "भुगतान",
+      "partial": "आंशिक",
+      "pending": "बाकी"
     },
     "pipeline": {
       "received":    "प्राप्त",
@@ -150,6 +154,8 @@
     "odometer": "ओडोमीटर (km)",
     "createJob": "काम बनाएं",
     "enterCustomerName": "ग्राहक का नाम दर्ज करें",
+    "assignTo": "सौंपें",
+    "selectEmployee": "कर्मचारी चुनें",
     "makeModelPlateRequired": "मेक, मॉडल और नंबर प्लेट जरूरी है",
     "fullNamePlaceholder": "पूरा नाम",
     "fuelTypes": {
@@ -252,12 +258,16 @@
     "shareInvoice": "इनवॉइस PDF शेयर करें",
     "shareWhatsapp": "WhatsApp पर भेजें",
     "shareInvoiceTitle": "इनवॉइस",
+    "collectedBy": "किसने लिया",
+    "cashHandover": "नकद सौंपना",
+    "pendingAdminConfirm": "एडमिन की पुष्टि बाकी",
     "sharingNotAvailable": "इस डिवाइस पर शेयरिंग उपलब्ध नहीं है",
     "pdfDownloadFailed": "इनवॉइस डाउनलोड नहीं हो सका। कृपया पुनः प्रयास करें।",
     "whatsappMsg": "नमस्ते {{name}}, आपकी बाइक {{bike}} ({{plate}}) की सर्विस पूरी हो गई है।\nजॉब: {{jobNumber}} | इनवॉइस: {{invoiceNumber}}\nकुल: ₹{{amount}}\nधन्यवाद!"
   },
   "payments": {
     "title": "भुगतान",
+    "myPayments": "मेरे भुगतान",
     "searchPlaceholder": "काम #, ग्राहक, फोन से खोजें…",
     "mode": "विधि",
     "status": "स्थिति",
@@ -269,7 +279,22 @@
     "paidOn": "भुगतान तिथि",
     "jobStatus": "काम की स्थिति",
     "vehicle": "वाहन",
-    "loadError": "भुगतान लोड नहीं हो सके।"
+    "loadError": "भुगतान लोड नहीं हो सके।",
+    "collected": "प्राप्त राशि",
+    "totalCollected": "कुल प्राप्त",
+    "pendingHandover": "सौंपना बाकी",
+    "handedToAdmin": "✓ एडमिन को सौंपा",
+    "pendingToAdmin": "⏳ एडमिन को सौंपना बाकी",
+    "dateRange": "तारीख सीमा",
+    "countShown": "{{count}} भुगतान",
+    "collectedBy": "किसने लिया",
+    "adminReceived": "एडमिन को मिला",
+    "markReceivedError": "प्राप्त दर्ज नहीं हो सका",
+    "submitted": "✓ जमा किया",
+    "notSubmitted": "⏳ जमा नहीं किया",
+    "submittedOn": "✓ {{date}} को जमा किया",
+    "cashNotSubmitted": "⏳ कर्मचारी ने नकद जमा नहीं किया",
+    "markCashReceived": "✓ नकद प्राप्त दर्ज करें"
   },
   "revenue": {
     "title": "आय",
@@ -281,14 +306,19 @@
     "onTimeRate": "समय पर दर",
     "avgDuration": "औसत काम अवधि",
     "viewPayments": "भुगतान सूची देखें",
-    "loadError": "आय डेटा लोड नहीं हो सका।"
+    "loadError": "आय डेटा लोड नहीं हो सका।",
+    "collectionByEmployee": "कर्मचारी द्वारा संग्रह"
   },
   "performance": {
     "jobsCompleted": "पूरे किए काम",
-    "revenue": "आय",
+    "revenue": "कुल संग्रह",
+    "onTimeCount": "समय पर",
+    "lateCount": "देरी से",
     "avgDuration": "औसत अवधि",
     "onTimeRate": "समय पर दर",
     "jobs": "काम",
+    "onTime": "समय पर",
+    "late": "देरी",
     "noData": "कोई डेटा नहीं",
     "loadError": "प्रदर्शन डेटा लोड नहीं हो सका।"
   },

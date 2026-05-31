@@ -1,11 +1,13 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 import useAuthStore from '../store/authStore';
 import i18n from '../i18n';
 import ERROR_CODE_KEYS from '../i18n/errorCodes';
 
-// Set BASE_URL in app.json extra or a local .env equivalent.
-// For development: replace with your machine's LAN IP so Expo Go can reach it.
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.100:5000/api';
+const BASE_URL =
+  Constants.expoConfig?.extra?.apiUrl ||
+  process.env.EXPO_PUBLIC_API_URL ||
+  'http://10.249.242.70:5000/api';
 
 const client = axios.create({
   baseURL: BASE_URL,

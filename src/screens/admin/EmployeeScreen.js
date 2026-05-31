@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   emptyText:          { fontSize: 16, color: '#aaa' },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 80,
     right: 20,
     backgroundColor: '#E85D04',
     borderRadius: 28,

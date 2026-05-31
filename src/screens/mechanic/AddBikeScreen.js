@@ -1,12 +1,13 @@
 import { showAlert } from '../../utils/alert'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Modal, FlatList,
   StyleSheet, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { searchCustomers, createCustomer, addBike } from '../../api/customer.api';
 import { createJob } from '../../api/job.api';
+import { getEmployees } from '../../api/employee.api';
 import useJobStore from '../../store/jobStore';
 import useAuthStore from '../../store/authStore';
 
@@ -34,6 +35,21 @@ export default function AddBikeScreen({ navigation }) {
   const [odometer, setOdometer] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+
+  const isOwner = user?.role === 'garage_owner';
+  const [assignList, setAssignList]         = useState([]);
+  const [assignee, setAssignee]             = useState(null);
+  const [assignPickerOpen, setAssignPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    getEmployees().then(({ data }) => {
+      const employees = Array.isArray(data) ? data : (data.employees ?? []);
+      const active = employees.filter(e => e.is_active);
+      setAssignList([{ _id: user._id, name: user.name, _self: true }, ...active]);
+      setAssignee({ _id: user._id, name: user.name, _self: true });
+    }).catch(() => {});
+  }, []);
 
   async function handleSearch() {
     const trimmed = phone.trim();
@@ -86,7 +102,7 @@ export default function AddBikeScreen({ navigation }) {
         bikeId = data.bike._id;
       }
 
-      const { data } = await createJob({ customer_id: finalCustomer._id, bike_id: bikeId, assigned_to: user._id });
+      const { data } = await createJob({ customer_id: finalCustomer._id, bike_id: bikeId, assigned_to: assignee?._id || user._id });
       setActiveJob(data.job);
       navigation.replace('Inspection');
     } catch (err) {
@@ -185,11 +201,48 @@ export default function AddBikeScreen({ navigation }) {
           </View>
         )}
 
+        {/* Assign To — only for garage owner */}
+        {isOwner && (customer || showNewCustomer) && (
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.label}>{t('addBike.assignTo')}</Text>
+            <TouchableOpacity style={styles.assignBtn} onPress={() => setAssignPickerOpen(true)}>
+              <Text style={styles.assignBtnText}>
+                {assignee ? `${assignee.name}${assignee._self ? ' (You)' : ''}` : t('addBike.selectEmployee')}
+              </Text>
+              <Text style={{ color: '#E85D04', fontSize: 16 }}>▾</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {(customer || showNewCustomer) && (
           <TouchableOpacity style={[styles.createBtn, submitting && { opacity: 0.6 }]} onPress={handleCreateJob} disabled={submitting}>
             {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>{t('addBike.createJob')}</Text>}
           </TouchableOpacity>
         )}
+
+        {/* Assign To picker modal */}
+        <Modal visible={assignPickerOpen} transparent animationType="slide" onRequestClose={() => setAssignPickerOpen(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAssignPickerOpen(false)}>
+            <View style={styles.modalSheet}>
+              <Text style={styles.modalTitle}>{t('addBike.assignTo')}</Text>
+              <FlatList
+                data={assignList}
+                keyExtractor={item => item._id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.assignOption, assignee?._id === item._id && styles.assignOptionSelected]}
+                    onPress={() => { setAssignee(item); setAssignPickerOpen(false); }}
+                  >
+                    <Text style={[styles.assignOptionText, assignee?._id === item._id && { color: '#E85D04', fontWeight: '700' }]}>
+                      {item.name}{item._self ? ' (You)' : ''}
+                    </Text>
+                    {assignee?._id === item._id && <Text style={{ color: '#E85D04' }}>✓</Text>}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -220,4 +273,22 @@ const styles = StyleSheet.create({
   fuelTextActive: { color: '#E85D04', fontWeight: '700' },
   createBtn:      { marginTop: 32, backgroundColor: '#E85D04', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
   createBtnText:  { color: '#fff', fontSize: 17, fontWeight: '700' },
+  assignBtn: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#ddd', borderRadius: 8,
+    paddingVertical: 12, paddingHorizontal: 14, backgroundColor: '#fafafa',
+  },
+  assignBtnText:  { fontSize: 15, color: '#111' },
+  modalOverlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, maxHeight: '60%',
+  },
+  modalTitle:     { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 12 },
+  assignOption: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+  },
+  assignOptionSelected: { backgroundColor: '#fff5ef' },
+  assignOptionText:     { fontSize: 15, color: '#333' },
 });

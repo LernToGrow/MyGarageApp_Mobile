@@ -65,3 +65,7 @@ export function getInvoice(jobId) {
 export function deleteJob(jobId) {
   return client.delete(`/jobs/${jobId}`);
 }
+
+export function remitPayment(jobId) {
+  return client.patch(`/jobs/${jobId}/remit`);
+}

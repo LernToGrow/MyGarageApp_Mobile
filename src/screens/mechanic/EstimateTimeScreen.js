@@ -134,7 +134,7 @@ export default function EstimateTimeScreen({ navigation }) {
 
   async function handleSend() {
     if (readyAt <= new Date()) {
-      showAlert('', t('estimateTime.mustBeFuture') || 'Ready time must be in the future');
+      showAlert('', t('estimateTime.mustBeFuture'));
       return;
     }
     setSaving(true);
@@ -167,13 +167,13 @@ export default function EstimateTimeScreen({ navigation }) {
         <Text style={styles.customerName}>{activeJob?.customer_id?.name}</Text>
       </View>
 
-      <Text style={styles.sectionLabel}>{t('estimateTime.readyWhen') || 'When will the bike be ready?'}</Text>
+      <Text style={styles.sectionLabel}>{t('estimateTime.readyWhen')}</Text>
 
       {/* Date row */}
       <TouchableOpacity style={styles.pickerRow} onPress={() => setShowDate(true)} activeOpacity={0.75}>
         <Text style={styles.pickerIcon}>📅</Text>
         <View style={styles.pickerInfo}>
-          <Text style={styles.pickerLabel}>{t('estimateTime.date') || 'Date'}</Text>
+          <Text style={styles.pickerLabel}>{t('estimateTime.date')}</Text>
           <Text style={styles.pickerValue}>{fmtDate(readyAt)}</Text>
         </View>
         <Text style={styles.pickerChevron}>›</Text>
@@ -183,7 +183,7 @@ export default function EstimateTimeScreen({ navigation }) {
       <TouchableOpacity style={styles.pickerRow} onPress={() => setShowTime(true)} activeOpacity={0.75}>
         <Text style={styles.pickerIcon}>🕐</Text>
         <View style={styles.pickerInfo}>
-          <Text style={styles.pickerLabel}>{t('estimateTime.time') || 'Time'}</Text>
+          <Text style={styles.pickerLabel}>{t('estimateTime.time')}</Text>
           <Text style={styles.pickerValue}>{fmtTime(readyAt)}</Text>
         </View>
         <Text style={styles.pickerChevron}>›</Text>

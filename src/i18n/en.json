@@ -107,6 +107,8 @@
     "deleteJob": "Delete Job",
     "deleteJobConfirm": "Delete {{number}}? All job data will be permanently removed.",
     "active": "Active",
+    "history": "History",
+    "noCompletedJobs": "No completed jobs yet",
     "dateFilter": "Date Filter",
     "statusFilter": "Job Status",
     "noActiveJobs": "No active jobs today",
@@ -118,7 +120,9 @@
       "in_progress": "In Progress",
       "done": "Done",
       "delivered": "Delivered",
-      "paid": "Paid"
+      "paid": "Paid",
+      "partial": "Partial",
+      "pending": "Pending"
     },
     "pipeline": {
       "received":    "Received",
@@ -150,6 +154,8 @@
     "odometer": "Odometer (km)",
     "createJob": "Create Job",
     "enterCustomerName": "Enter customer name",
+    "assignTo": "Assign To",
+    "selectEmployee": "Select employee",
     "makeModelPlateRequired": "Make, model and plate are required",
     "fullNamePlaceholder": "Full name",
     "fuelTypes": {
@@ -252,12 +258,16 @@
     "shareInvoice": "Share Invoice PDF",
     "shareWhatsapp": "Send on WhatsApp",
     "shareInvoiceTitle": "Invoice",
+    "collectedBy": "Collected by",
+    "cashHandover": "Cash handover",
+    "pendingAdminConfirm": "Pending admin confirmation",
     "sharingNotAvailable": "Sharing is not available on this device",
     "pdfDownloadFailed": "Could not download the invoice. Please try again.",
     "whatsappMsg": "Hi {{name}}, your bike {{bike}} ({{plate}}) service is complete.\nJob: {{jobNumber}} | Invoice: {{invoiceNumber}}\nTotal: ₹{{amount}}\nThank you!"
   },
   "payments": {
     "title": "Payments",
+    "myPayments": "My Payments",
     "searchPlaceholder": "Search job #, customer, phone…",
     "mode": "Mode",
     "status": "Status",
@@ -269,7 +279,22 @@
     "paidOn": "Paid On",
     "jobStatus": "Job Status",
     "vehicle": "Vehicle",
-    "loadError": "Could not load payments."
+    "loadError": "Could not load payments.",
+    "collected": "Collected",
+    "totalCollected": "Total Collected",
+    "pendingHandover": "Pending Handover",
+    "handedToAdmin": "✓ Handed to admin",
+    "pendingToAdmin": "⏳ Pending handover to admin",
+    "dateRange": "Date Range",
+    "countShown": "{{count}} payments",
+    "collectedBy": "Collected by",
+    "adminReceived": "Admin received",
+    "markReceivedError": "Could not mark as received",
+    "submitted": "✓ Submitted",
+    "notSubmitted": "⏳ Not Submitted",
+    "submittedOn": "✓ Submitted on {{date}}",
+    "cashNotSubmitted": "⏳ Cash not submitted by employee",
+    "markCashReceived": "✓ Mark Cash Received"
   },
   "revenue": {
     "title": "Revenue",
@@ -281,14 +306,19 @@
     "onTimeRate": "On-Time Rate",
     "avgDuration": "Avg Job Duration",
     "viewPayments": "View Payment List",
-    "loadError": "Could not load revenue data."
+    "loadError": "Could not load revenue data.",
+    "collectionByEmployee": "Collection by Employee"
   },
   "performance": {
     "jobsCompleted": "Jobs Completed",
-    "revenue": "Revenue",
+    "revenue": "Total Collected",
+    "onTimeCount": "On Time",
+    "lateCount": "Late",
     "avgDuration": "Avg Duration",
     "onTimeRate": "On-Time Rate",
     "jobs": "Jobs",
+    "onTime": "On time",
+    "late": "Late",
     "noData": "No data available",
     "loadError": "Could not load performance data."
   },
