@@ -1,7 +1,7 @@
 import { showAlert } from '../../utils/alert'
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Image,
   StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator, ScrollView,
 } from 'react-native';
@@ -54,7 +54,11 @@ export default function LoginScreen({ navigation }) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Garage App</Text>
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.subtitle}>{t('auth.signInToContinue')}</Text>
 
         {/* Phone */}
@@ -135,12 +139,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 40,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#E85D04',
+  logo: {
+    width: 220,
+    height: 56,
+    alignSelf: 'center',
     marginBottom: 6,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
